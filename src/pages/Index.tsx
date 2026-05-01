@@ -1,41 +1,17 @@
-import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Loader2, Sparkles, Download, LogOut, History as HistoryIcon } from "lucide-react";
+import { Loader2, Sparkles, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { Session } from "@supabase/supabase-js";
 
 const MAX_PROMPT_LENGTH = 2000;
 
 const Index = () => {
-  const navigate = useNavigate();
-  const [session, setSession] = useState<Session | null>(null);
-  const [authChecked, setAuthChecked] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      setAuthChecked(true);
-      if (!s) navigate("/auth", { replace: true });
-    });
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setAuthChecked(true);
-      if (!s) navigate("/auth", { replace: true });
-    });
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast.success("Signed out");
-  };
 
   const generateImage = async () => {
     const trimmed = prompt.trim();
@@ -50,8 +26,8 @@ const Index = () => {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { prompt: trimmed }
+      const { data, error } = await supabase.functions.invoke("generate-image", {
+        body: { prompt: trimmed },
       });
 
       if (error) {
@@ -62,7 +38,7 @@ const Index = () => {
         } else {
           toast.error("Failed to generate image");
         }
-        console.error('Error:', error);
+        console.error("Error:", error);
         return;
       }
 
@@ -76,7 +52,7 @@ const Index = () => {
         toast.success("Image generated successfully!");
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       toast.error("An unexpected error occurred");
     } finally {
       setIsLoading(false);
@@ -85,7 +61,7 @@ const Index = () => {
 
   const downloadImage = () => {
     if (!imageUrl) return;
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = imageUrl;
     link.download = `generated-image-${Date.now()}.png`;
     document.body.appendChild(link);
@@ -94,30 +70,10 @@ const Index = () => {
     toast.success("Image downloaded!");
   };
 
-  if (!authChecked || !session) {
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-gradient-to-b from-background to-background/95 py-12 px-4">
       <div className="container max-w-6xl mx-auto">
         <header className="text-center mb-12 animate-fade-in relative">
-          <div className="absolute right-0 top-0 flex gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/history">
-                <HistoryIcon className="mr-2 h-4 w-4" />
-                History
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign out
-            </Button>
-          </div>
           <div className="inline-flex items-center gap-2 mb-4 text-primary">
             <Sparkles className="w-8 h-8" />
           </div>
@@ -138,7 +94,7 @@ const Index = () => {
                 </label>
                 <Textarea
                   id="prompt"
-                  placeholder="Describe the image you want to create... (e.g., 'A serene mountain landscape at sunset with vibrant colors')"
+                  placeholder="Describe the image you want to create..."
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value.slice(0, MAX_PROMPT_LENGTH))}
                   maxLength={MAX_PROMPT_LENGTH}
@@ -150,11 +106,7 @@ const Index = () => {
                 </p>
               </div>
 
-              <Button
-                onClick={generateImage}
-                disabled={isLoading || !prompt.trim()}
-                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity shadow-glow"
-              >
+              <Button onClick={generateImage} disabled={isLoading || !prompt.trim()} className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity shadow-glow">
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -167,10 +119,6 @@ const Index = () => {
                   </>
                 )}
               </Button>
-
-              <p className="text-xs text-muted-foreground text-center">
-                Powered by Gemini AI • Free to use during beta
-              </p>
             </div>
           </Card>
 
@@ -179,12 +127,7 @@ const Index = () => {
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Generated Image</h2>
                 {imageUrl && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={downloadImage}
-                    className="border-border/50 hover:bg-accent/10"
-                  >
+                  <Button variant="outline" size="sm" onClick={downloadImage}>
                     <Download className="mr-2 h-4 w-4" />
                     Download
                   </Button>
@@ -198,33 +141,17 @@ const Index = () => {
                     <p className="text-sm text-muted-foreground">Creating your masterpiece...</p>
                   </div>
                 ) : imageUrl ? (
-                  <img
-                    src={imageUrl}
-                    alt="Generated artwork"
-                    className="w-full h-full object-contain animate-fade-in"
-                  />
+                  <img src={imageUrl} alt="Generated artwork" className="w-full h-full object-contain animate-fade-in" />
                 ) : (
                   <div className="text-center space-y-2 p-8">
                     <Sparkles className="h-12 w-12 text-muted-foreground/50 mx-auto" />
-                    <p className="text-sm text-muted-foreground">
-                      Your generated image will appear here
-                    </p>
+                    <p className="text-sm text-muted-foreground">Your generated image will appear here</p>
                   </div>
                 )}
               </div>
             </div>
           </Card>
         </div>
-
-        <Card className="mt-8 p-6 border-border/50 bg-card/50 backdrop-blur-sm">
-          <h3 className="text-lg font-semibold mb-3">💡 Tips for better results:</h3>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>• Be specific and descriptive in your prompts</li>
-            <li>• Mention the style you want (e.g., "photorealistic", "digital art", "watercolor")</li>
-            <li>• Include details about lighting, colors, and mood</li>
-            <li>• Experiment with different descriptions to see what works best</li>
-          </ul>
-        </Card>
       </div>
     </main>
   );
